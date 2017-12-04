@@ -1,0 +1,276 @@
+#!/bin/bash
+# runs selected commands over matching test files
+# it assumes tests are in the directory containing this script
+# it assumes that the executable is in the parent directory
+
+### DIRECTORY PATHNAMES ###
+
+# nullglob is set so nothing runs if there are no test files
+shopt -s nullglob
+
+# work out relative path to tests directory
+THISPWD=`pwd`
+
+# find the test directory name
+TESTDIR=`dirname $0`
+cd "$TESTDIR"
+TESTPWD=`pwd`
+
+# find the parent directory name
+PARENTDIR=`dirname "${TESTPWD}"`
+
+# fix up pathnames to be displayed
+if [ "$THISPWD" == "$TESTPWD" ] ; then
+	TESTDIR=""
+	PARENTDIR="../"
+elif [ "$THISPWD" == "$PARENTDIR" ] ; then
+	TESTDIR=`basename "$TESTPWD"`/
+	PARENTDIR="./"
+else
+	echo "cd ${TESTDIR}"
+	TESTDIR=`basename "$TESTPWD"`/
+	PARENTDIR="./"
+fi
+
+### PRETTY STUFF ###
+
+# if using an xterm - use headings and colour coded test results
+if [ "${TERM:0:5}" == "xterm" -o "${TERM:0:2}" == "vt" ] ; then
+	colorboldblack="\e[1;7;30m"
+	colorboldgreen="\e[1;7;32m"
+	colorboldred="\e[1;7;31m"
+	undocolor="\e[0m"
+else
+	colorboldblack=
+	colorboldgreen=
+	colorboldred=
+	undocolor=
+fi
+
+# make a string of whitespace matching the longest string parameter
+padding=
+setpadding()
+{
+	padding=
+	while [ "${#@}" -gt 0 ] ; do
+		while [ "${#padding}" -lt "${#1}" ] ; do
+			padding="${padding} "
+		done
+		shift 1
+	done
+}
+
+
+### WHAT TESTS ARE WE RUNNING? ###
+
+# outputs to check
+case $1 in
+demo-parser)
+	command1=lib/wparser
+	command2=lib/pxml
+	command3=cat
+	outputs=parser.pxml.Pxml
+	echo "Testing working jack_parser() against parser.pxml.Pxml files."
+	;;
+demo-parser-dnc)
+	command1=lib/wparser
+	command2=cat
+	command3=cat
+	outputs=parser.empty
+	echo "Testing working jack_parser() against parser.empty files."
+	;;
+demo-pretty)
+	command1=lib/wparser
+	command2=lib/wpretty
+	command3=cat
+	outputs=parser.pretty.Pjack
+	echo "Testing working jack_pretty() against parser.pretty.Pjack files."
+	;;
+demo-codegen)
+	command1=lib/wparser
+	command2=lib/wcodegen
+	command3=cat
+	outputs=parser.codegen.Cvm
+	echo "Testing working jack_codegen() against parser.codegen.Cvm files."
+	;;
+demo-opt-r)
+	command1=lib/wparser
+	command2=lib/wopt-r
+	command3=lib/pxml
+	outputs=parser.opt-r.pxml.Pxml
+	echo "Testing working jack_optimiser_r() against parser.opt-r.pxml.Pxml files."
+	;;
+demo-opt-e)
+	command1=lib/wparser
+	command2=lib/wopt-e
+	command3=lib/pxml
+	outputs=parser.opt-e.pxml.Pxml
+	echo "Testing working jack_optimiser_e() against parser.opt-e.pxml.Pxml files."
+	;;
+demo-compiler)
+	command1=lib/wcompiler
+	command2=cat
+	command3=cat
+	outputs=compiler.Cvm
+	echo "Testing working jack_compiler() against compiler.Cvm files."
+	;;
+parser)
+	command1=jparser
+	command2=lib/pxml
+	command3=cat
+	outputs=parser.pxml.Pxml
+	echo "Testing student jack_parser() against parser.pxml.Pxml files."
+	;;
+parser-dnc)
+	command1=jparser
+	command2=cat
+	command3=cat
+	outputs=parser.empty
+	echo "Testing student jack_parser() against parser.empty files."
+	;;
+pretty)
+	command1=lib/wparser
+	command2=jpretty
+	command3=cat
+	outputs=parser.pretty.Pjack
+	echo "Testing student jack_pretty() against parser.pretty.Pjack files."
+	;;
+codegen)
+	command1=lib/wparser
+	command2=jcodegen
+	command3=cat
+	outputs=parser.codegen.Cvm
+	echo "Testing student jack_codegen() against parser.codegen.Cvm files."
+	;;
+opt-r)
+	command1=lib/wparser
+	command2=jopt-r
+	command3=lib/pxml
+	outputs=parser.opt-r.pxml.Pxml
+	echo "Testing student jack_optimiser_r() against parser.opt-r.pxml.Pxml files."
+	;;
+opt-e)
+	command1=lib/wparser
+	command2=jopt-e
+	command3=lib/pxml
+	outputs=parser.opt-e.pxml.Pxml
+	echo "Testing student jack_optimiser_e() against parser.opt-e.pxml.Pxml files."
+	;;
+compiler)
+	command1=jcompiler
+	command2=cat
+	command3=cat
+	outputs=compiler.Cvm
+	echo "Testing student jack_compiler() against compiler.Cvm files."
+	;;
+*)
+	echo "Unrecognised argument - no tests will be run."
+	exit -1 ;
+	;;
+esac
+
+### MAKE PRETTY COLUMNS and COMMAND NAMES ###
+
+## output will be: Checking " cat <inputfile> | <program1> | <program2> | <program3> | diff - <outputfile> " <result>
+
+# column1 - blank
+setpadding "Checking"
+col1="${padding}"
+
+# column2 - test input file
+setpadding "cat ${TESTDIR}ElSquare/SquareGame.jack"
+input_padding="${padding}"
+
+col2="    Pathname: Test Input"
+col2="${col2}${input_padding:${#col2}}"
+
+# column3 - program 1 - check we have a command1
+setpadding "${PARENTDIR}lib/wcompiler"
+command_padding1="${padding}"
+
+if [ ! -x "../${command1}" ] ; then
+	echo "Cannot find executable ${PARENTDIR}${command1}"
+	exit -1
+fi
+display1="${PARENTDIR}${command1}"
+display1="${display1}${command_padding1:${#display1}}"
+command1="../${command1}"
+
+col3=" Program 1"
+col3="${col3}${command_padding1:${#col3}}"
+
+# column4 - program 2 - check we have a command2 - cat means no command
+setpadding "${PARENTDIR}lib/wcodegen"
+command_padding2="${padding}"
+
+if [ "${command2}" != "cat" ] ; then
+	if [ ! -x "../${command2}" ] ; then
+		echo "Cannot find executable ${PARENTDIR}${command2}"
+		exit -1
+	fi
+	display2="${PARENTDIR}${command2}"
+	display2=" | ${display2}${command_padding2:${#display2}}"
+	command2="../${command2}"
+	col4=" Program 2"
+	col4=" | ${col4}${command_padding2:${#col4}}"
+else
+	display2="   ${command_padding2}"
+	col4=
+	col4="   ${col4}${command_padding2:${#col4}}"
+fi
+
+# column5 - program 3 - check we have a command3 - cat means no command
+setpadding "${PARENTDIR}lib/pxml"
+command_padding3="${padding}"
+
+if [ "${command3}" != "cat" ] ; then
+	if [ ! -x "../${command3}" ] ; then
+		echo "Cannot find executable ${PARENTDIR}${command3}"
+		exit -1
+	fi
+	display3="${PARENTDIR}${command3}"
+	display3=" | ${display3}${command_padding3:${#display3}}"
+	command3="../${command3}"
+	col5=" Program 3"
+	col5=" | ${col5}${command_padding3:${#col5}}"
+else
+	display3="   ${command_padding3}"
+	col5=
+	col5="   ${col5}${command_padding3:${#col5}}"
+fi
+
+# column 6 - test expected output file
+setpadding "diff - ${TESTDIR}ElSquare/SquareGame.jack.parser.opt-r.pxml.Pxml"
+output_padding="${padding}"
+
+col6="       Pathname: Expected Test Output"
+col6="${col6}${output_padding:${#col6}}"
+
+# column 7 - test result
+setpadding " test passed " " test failed "
+result_padding="${padding}"
+col7=" Test Result"
+col7="${col7}${result_padding:${#col7}}"
+
+echo -e "${colorboldblack}${col1} |${col2} | ${col3}${col4}${col5} | ${col6}|${col7}${undocolor}"
+
+# test command with all test files that have a matching output kind file
+for i in */*.${outputs} ; do
+	input="${i%%.${outputs}}"
+	if [ -f "${input}" ] ; then
+		display_input="cat ${TESTDIR}${input}"
+		display_input="${display_input}${input_padding:${#display_input}}"
+
+		display_output="diff - ${TESTDIR}${i}"
+		display_output="${display_output}${output_padding:${#display_output}}"
+
+		echo -n "Checking \"${display_input} | ${display1}${display2}${display3} | ${display_output}\""
+		if cat ${input} | "${command1}" 2> /dev/null | "${command2}" 2> /dev/null | "${command3}" 2> /dev/null | diff -q - ${i} > /dev/null 2> /dev/null ; then
+			echo -e "${colorboldgreen} test passed ${undocolor}"
+		else
+			echo -e "${colorboldred} test failed ${undocolor}"
+		fi
+	fi
+done
+echo
+
