@@ -1,0 +1,81 @@
+#!/bin/bash
+# runs chosen assembler over test files
+# it assumes tests are in the directory containing this script
+# it assumes that the executable is in the parent directory
+
+# suffix to check, one of m or f
+case $1 in
+demo-assembler-m)
+	assembler=lib/w-assembler-m
+	files=L.asm
+	message="Testing working assembler-m against hack files"
+	;;
+assembler-m)
+	assembler=assembler-m
+	files=L.asm
+	message="Testing student assembler-m against hack files"
+	;;
+demo-assembler-f)
+	assembler=lib/w-assembler-f
+	files=.asm
+	message="Testing working assembler-f against hack files"
+	;;
+assembler-f)
+	assembler=assembler-f
+	files=.asm
+	message="Testing student assembler-f against hack files"
+	;;
+*)
+	assembler=assembler-f
+	files=.asm
+	message="Testing student assembler-f against hack files"
+	;;
+esac
+
+# work out relative path to tests directory
+THISPWD=`pwd`
+
+# find the test directory name
+TESTDIR=`dirname $0`
+cd "$TESTDIR"
+TESTPWD=`pwd`
+
+# find the parent directory name
+PARENTDIR=`dirname "${TESTPWD}"`
+
+# fix up pathnames to be displayed
+if [ "$THISPWD" == "$TESTPWD" ] ; then
+	TESTDIR=""
+	PARENTDIR="../"
+elif [ "$THISPWD" == "$PARENTDIR" ] ; then
+	TESTDIR=`basename "$TESTPWD"`/
+	PARENTDIR="./"
+else
+	echo "cd ${TESTDIR}"
+	TESTDIR=`basename "$TESTPWD"`/
+	PARENTDIR="./"
+fi
+
+# check we have a assembler first
+if [ ! -x "../${assembler}" ] ; then
+	echo Cannot find executable ${PARENTDIR}${assembler}
+	exit -1
+fi
+
+# nullglob is set so nothing runs if there are no test files
+shopt -s nullglob
+
+# test assembler-[mf] with all test files that have a matching .hack file
+echo "${message}"
+for i in *${files} ; do
+	input=$i
+	output="${i%%.asm}.hack"
+	if [ -f "${output}" ] ; then
+		echo -n "Checking \"${PARENTDIR}${assembler} < ${TESTDIR}${input} | diff - ${TESTDIR}${output}\" - test "
+		if "../${assembler}" < ${input} | diff -q - ${output} > /dev/null 2> /dev/null ; then
+			echo passed
+		else
+			echo failed
+		fi
+	fi
+done
