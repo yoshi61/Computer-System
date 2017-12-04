@@ -1,0 +1,36 @@
+<class>
+    <className>Main</className>
+    <classVarDecs>
+    </classVarDecs>
+    <subroutineDecs>
+        <function>
+            <type>void</type>
+            <subroutineName>main</subroutineName>
+            <parameterList>
+            </parameterList>
+            <subroutineBody>
+                <varDecs>
+                </varDecs>
+                <statements>
+                    <statement>
+                        <ifStatement>
+                            <expression>
+                                <term>
+                                    <keywordConstant>false</keywordConstant>
+                                </term>
+                            </expression>
+                            <statements>
+                            </statements>
+                            <statements>
+                            </statements>
+                        </ifStatement>
+                    </statement>
+                    <statement>
+                        <returnStatement>
+                        </returnStatement>
+                    </statement>
+                </statements>
+            </subroutineBody>
+        </function>
+    </subroutineDecs>
+</class>
