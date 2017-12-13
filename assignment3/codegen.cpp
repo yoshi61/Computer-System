@@ -10,15 +10,14 @@
 
 using namespace std ;
 
+/////////////////////////////////// static varibles //////////////////////////////////////////
+
 static string className = "" ;
 static int whileCounter = 0;
 static int ifCounter = 0;
-
-
-
-static bool check_variable(string identifier);
-
-
+//static bool check_variable(string identifier);
+static string keyword;
+//////////////////////////////////// helper functions ///////////////////////////////////////
 
 int string_to_int(string str)
 {
@@ -53,10 +52,12 @@ static bool checkJackClass(string jack_class_name)
 	{
 		return false;
 	}
+	/*
 	else if(check_variable(jack_class_name))
 	{
 		return false;
 	}
+	*/
 	return true;
 }
 
@@ -100,36 +101,26 @@ static int field_variable_counter = 0 ;
 static int local_variable_counter = 0 ;
 static int argument_counter = 0 ;
 //////////// symbols table management so we can lookup declared  variables
-static symbol_table_int symbols = create_symbol_table_int() ;
+static symbol_table_int argument_table = create_symbol_table_int() ;
+static symbol_table_int local_variable_table = create_symbol_table_int() ;
 static symbol_table_int static_variable_table = create_symbol_table_int() ;
 static symbol_table_int field_variable_table = create_symbol_table_int() ;
-static symbol_table_int argument_table = create_symbol_table_int() ;
+static symbol_table_int subroutine_table = create_symbol_table_int() ;
+static symbol_table_int method_table = create_symbol_table_int() ;
 
-
-// this function adds an identifier to the symbol table
-static void declare_variable(string identifier, int variable_counter)
+// this function adds an local variable to the symbol table
+static void declare_argument(string identifier, int counter)
 {
-	if ( !symbols->insert(identifier,variable_counter) )
+	if ( !argument_table->insert(identifier, counter) )
 	{
 		//cout << "Variable:  " << identifier <<  " has already been declared" << endl ;
         //exit(-1) ;
 	} 
 }
 
-
-// lookup the identifier, it is an error if it was not previously declared
-static void lookup_variable(string identifier)
+static bool check_argument(string identifier)
 {
-    if ( symbols->lookup(identifier) == -1 )
-    {
-        //cout << "Found undeclared symbol variable:  " << identifier <<  endl ;
-        exit(-1) ;
-    }
-}
-
-static bool check_variable(string identifier)
-{
-	if ( symbols->lookup(identifier) == -1 )
+	if ( argument_table->lookup(identifier) == -1 )
     {
         return false ;
     }
@@ -140,9 +131,44 @@ static bool check_variable(string identifier)
 }
 
 
-static void declare_static_variable(string identifier, int static_variable_counter)
+// this function adds an local variable to the symbol table
+static void declare_local_variable(string identifier, int counter)
 {
-	if ( !static_variable_table->insert(identifier,static_variable_counter) )
+	if ( !local_variable_table->insert(identifier, counter) )
+	{
+		//cout << "Variable:  " << identifier <<  " has already been declared" << endl ;
+        //exit(-1) ;
+	} 
+	local_variable_counter++;
+}
+
+
+// lookup the identifier, it is an error if it was not previously declared
+static void lookup_local_variable(string identifier)
+{
+    if ( local_variable_table->lookup(identifier) == -1 )
+    {
+        //cout << "Found undeclared symbol variable:  " << identifier <<  endl ;
+        exit(-1) ;
+    }
+}
+
+static bool check_local_variable(string identifier)
+{
+	if ( local_variable_table->lookup(identifier) == -1 )
+    {
+        return false ;
+    }
+    else
+    {
+    	return true ;
+    }
+}
+
+// this function adds an static variable to the symbol table
+static void declare_static_variable(string identifier, int counter)
+{
+	if ( !static_variable_table->insert(identifier, counter) )
 	{
 		//cout << "static:  " << identifier <<  " has already been declared" << endl ;
         //exit(-1) ;
@@ -173,9 +199,10 @@ static bool check_static_variable(string identifier)
     }
 }
 
-static void declare_field_variable(string identifier, int field_variable_counter)
+// this function adds an field variable to the symbol table
+static void declare_field_variable(string identifier, int counter)
 {
-	if ( !field_variable_table->insert(identifier,field_variable_counter) )
+	if ( !field_variable_table->insert(identifier, counter) )
 	{
 		//cout << "field:  " << identifier <<  " has already been declared" << endl ;
         //exit(-1) ;
@@ -196,7 +223,63 @@ static void lookup_field_variable(string identifier)
 
 static bool check_field_variable(string identifier)
 {
-	if ( static_variable_table->lookup(identifier) == -1 )
+	if ( field_variable_table->lookup(identifier) == -1 )
+    {
+        return false ;
+    }
+    else
+    {
+    	return true ;
+    }
+}
+
+// this function adds a subroutine and the num of arguments it takes to the symbol table
+static void declare_subroutine(string identifier, int counter)
+{
+	if ( !subroutine_table->insert(identifier, counter) )
+	{
+		//cout << "Variable:  " << identifier <<  " has already been declared" << endl ;
+        //exit(-1) ;
+	} 
+	local_variable_counter++;
+}
+
+
+// lookup the identifier, it is an error if it was not previously declared
+static void lookup_subroutine(string identifier)
+{
+    if ( subroutine_table->lookup(identifier) == -1 )
+    {
+        //cout << "Found undeclared symbol variable:  " << identifier <<  endl ;
+        exit(-1) ;
+    }
+}
+
+static bool check_subroutine(string identifier)
+{
+	if ( subroutine_table->lookup(identifier) == 1 )
+    {
+        return true ;
+    }
+    else
+    {
+    	return false ;
+    }
+}
+
+// this function adds an local variable to the symbol table
+static void declare_method(string identifier)
+{
+	if ( !method_table->insert(identifier, 1) )
+	{
+		//cout << "Variable:  " << identifier <<  " has already been declared" << endl ;
+        //exit(-1) ;
+	} 
+}
+
+static bool check_method(string identifier)
+{
+	if ( method_table->lookup(identifier) == -1 )
     {
         return false ;
     }
@@ -224,22 +307,14 @@ void genVarDec(cs_node ) ;
 void genClassName() ;
 void genSubroutineName(cs_node ) ;
 void genVarName(cs_node ) ;
-
-
-
 void genStatements(cs_node ) ;
 void genStatement(cs_node ) ;
-
 void genLetStatement(cs_node ) ;
 void genIfStatement(cs_node ) ;
 void genWhileStatement(cs_node ) ;
 void genDoStatement(cs_node ) ;
 void genReturnStatement(cs_node ) ;
-
 void genOffset(cs_node ) ;
-
-
-
 void genExpression(cs_node ) ;
 void genTerm(cs_node ) ;
 void genArrayIndex(cs_node ) ;
@@ -298,9 +373,10 @@ void genSubroutineDecs(cs_node subroutineDecs)
 	int num_of_subroutine_dec = cs_children(subroutineDecs);
 	if(num_of_subroutine_dec > 0)
 	{
-		string keyword = cs_node_name(cs_get_child(subroutineDecs, 0));
 		for(int i = 0; i < num_of_subroutine_dec; i++)
 		{
+			keyword = cs_node_name(cs_get_child(subroutineDecs, i));
+
 			if(keyword=="function")
 			{
 				genFunction(cs_get_child(subroutineDecs, i));
@@ -327,6 +403,7 @@ void genConstructor(cs_node constructor)
 	write_to_buffer("function " + className + ".");
 	cout << "function " + className + ".";
 
+	argument_counter = cs_children(cs_get_child(constructor, 2));
 
 	genType(cs_get_child(constructor, 0));
 	genSubroutineName(cs_get_child(constructor, 1));
@@ -340,6 +417,8 @@ void genFunction(cs_node function)
 	write_to_buffer("function " + className + ".");
 	cout << "function " + className + ".";
 
+	argument_counter = cs_children(cs_get_child(function, 2));
+
 	genType(cs_get_child(function, 0));
 	genSubroutineName(cs_get_child(function, 1));
 	genParameterList(cs_get_child(function, 2));
@@ -352,8 +431,11 @@ void genMethod(cs_node method)
 	write_to_buffer("function " + className + ".");
 	cout << "function " + className + ".";
 
+	argument_counter = cs_children(cs_get_child(method, 2)) + 1;
+
 	genType(cs_get_child(method, 0));
 	genSubroutineName(cs_get_child(method, 1));
+
 	genParameterList(cs_get_child(method, 2));
 
 	genSubroutineBody(cs_get_child(method, 3));
@@ -361,8 +443,13 @@ void genMethod(cs_node method)
 
 void genSubroutineName(cs_node funcMethCons)
 {
-	write_to_buffer(cs_node_value(funcMethCons)+" ");
+	string subroutineName = cs_node_value(funcMethCons);
+	write_to_buffer(+" ");
 	cout << cs_node_value(funcMethCons)+" ";
+
+	declare_subroutine(subroutineName, argument_counter);
+	declare_method(subroutineName);
+	argument_counter = 0;
 }
 
 void genParameterList(cs_node parameterList)
@@ -410,26 +497,27 @@ void genVarDecs(cs_node varDecs)
 	//if there are local variables
 	if(num_of_var_dec > 0)
 	{
-		bool have_field = false;
 		for(int i = 0; i < num_of_var_dec; i++)
 		{
 			genVarDec(cs_get_child(varDecs, i));
-			if(cs_node_name(cs_get_child(cs_get_child(varDecs, i), 2)) == "field")
-			{
-				have_field = true;
-			}
 		}
-		/*
-		if(have_field)
-		{
-			write_to_buffer("push constant " + int_to_string(field_variable_counter) + "\n");
-			write_to_buffer("call Memory.alloc 1\n");
-			write_to_buffer("pop pointer 0\n")
-			cout<<  ;
-			cout<<  ;
-			cout<<  ;
-		}
-		*/
+	}
+
+	if(field_variable_counter > 0 && keyword == "constructor")
+	{
+		write_to_buffer("push constant " + int_to_string(field_variable_counter) + "\n");
+		write_to_buffer("call Memory.alloc 1\n");
+		write_to_buffer("pop pointer 0\n");
+		cout<< "push constant " + int_to_string(field_variable_counter) + "\n";
+		cout<< "call Memory.alloc 1\n";
+		cout<< "pop pointer 0\n";
+	}
+	else if(keyword == "method")
+	{
+		write_to_buffer("push argument 0\n");
+		write_to_buffer("pop pointer 0\n");
+		cout << "push argument 0\n";
+		cout << "pop pointer 0\n";
 	}
 }
 
@@ -444,9 +532,17 @@ void genVarDec(cs_node varDec)
 	{
 		declare_static_variable(variable_name, string_to_int(variable_Offset));
 	}
-	else if(variable_segment == "field")
+	else if(variable_segment == "this")
 	{
 		declare_field_variable(variable_name, string_to_int(variable_Offset));
+	}
+	else if(variable_segment == "local")
+	{
+		declare_local_variable(variable_name, string_to_int(variable_Offset));
+	}
+	else if(variable_segment == "argument")
+	{
+		declare_argument(variable_name, string_to_int(variable_Offset));
 	}
 }
 
@@ -465,30 +561,30 @@ void genStatements(cs_node statements)
 
 void genStatement(cs_node statement)
 {
-	string keyword = cs_node_name(cs_get_child(statement, 0));
-	if(keyword == "letStatement")
+	string statementKeyword = cs_node_name(cs_get_child(statement, 0));
+	if(statementKeyword == "letStatement")
 	{
 		genLetStatement(cs_get_child(statement, 0));
 	}
-	else if(keyword == "ifStatement")
+	else if(statementKeyword == "ifStatement")
 	{
 		genIfStatement(cs_get_child(statement, 0));
 	}
-	else if(keyword == "whileStatement")
+	else if(statementKeyword == "whileStatement")
 	{
 		genWhileStatement(cs_get_child(statement, 0));
 	}
-	else if(keyword == "doStatement")
+	else if(statementKeyword == "doStatement")
 	{
 		genDoStatement(cs_get_child(statement, 0));
 	}
-	else if(keyword == "returnStatement")
+	else if(statementKeyword == "returnStatement")
 	{
 		genReturnStatement(cs_get_child(statement, 0));
 	}
 	else
 	{
-		cout << "can not find statement : " << keyword << endl;
+		cout << "can not find statement : " << statementKeyword << endl;
 		exit(0);
 	}
 }
@@ -589,6 +685,11 @@ void genLetStatement(cs_node letStatement)
 		write_to_buffer("pop static " + int_to_string(static_variable_table->lookup(unknown_variable_name)) + "\n");
 		cout << "pop static " + int_to_string(static_variable_table->lookup(unknown_variable_name)) + "\n" ;
 	}
+	else if(check_local_variable(unknown_variable_name))
+	{
+		write_to_buffer("pop local " + int_to_string(local_variable_table->lookup(unknown_variable_name)) + "\n");
+		cout << "pop local " + int_to_string(local_variable_table->lookup(unknown_variable_name)) + "\n" ;
+	}
 }
 
 void genDoStatement(cs_node  doStatement)
@@ -601,7 +702,14 @@ void genReturnStatement(cs_node returnStatement)
 	string check_void = cs_node_value(cs_get_child(cs_parent_node(cs_parent_node(cs_parent_node(cs_parent_node(returnStatement)))), 0));
 
 	int num_of_expression = cs_children(returnStatement);
-	if(num_of_expression == 1)
+	if(keyword == "constructor")
+	{
+		write_to_buffer("push pointer 0\n");
+		cout << "push pointer 0" << endl;
+		write_to_buffer("return\n");
+		cout << "return" << endl;
+	}
+	else if(num_of_expression == 1)
 	{
 		genExpression(cs_get_child(returnStatement, 0));
 		write_to_buffer("return\n");
@@ -651,7 +759,7 @@ void genInfixOp(cs_node infix)
 
 void genExpressionList(cs_node expressionList)
 {
-
+	
 }
 
 void genTerm(cs_node term)
@@ -677,13 +785,11 @@ void genTerm(cs_node term)
 			write_to_buffer("push static " + int_to_string(static_variable_table->lookup(unknown_variable_name)) + "\n");
 			cout << "push static " + int_to_string(static_variable_table->lookup(unknown_variable_name)) + "\n" ;
 		}
-		/*
 		else if(check_field_variable(unknown_variable_name))
 		{
-			write_to_buffer("push static " + int_to_string(static_variable_table->lookup(unknown_variable_name)) + "\n");
-			cout << "push static " + int_to_string(static_variable_table->lookup(unknown_variable_name)) + "\n" ;
+			write_to_buffer("push this " + int_to_string(field_variable_table->lookup(unknown_variable_name)) + "\n");
+			cout << "push this " + int_to_string(field_variable_table->lookup(unknown_variable_name)) + "\n" ;
 		}
-		*/
 	}
 	else if(cs_node_name(cs_get_child(term,0)) == "integerConstant")
 	{
@@ -699,20 +805,21 @@ void genTerm(cs_node term)
 
 void genSubroutineCall(cs_node subroutineCall)
 {
-	string unknown_variable_name;
-	string unknown_subroutine_name;
+	string unknown_variable_name = cs_node_value(cs_get_child(subroutineCall, 0));
+	string unknown_subroutine_name = cs_node_value( cs_get_child(subroutineCall, 1));
 	int num_of_subroutineCall = cs_children(subroutineCall);
+
+	if(check_subroutine(unknown_subroutine_name))
+	{
+		write_to_buffer("push local 0\n");
+		cout << "push local 0" << endl;
+	}
 
 	write_to_buffer("call ");
 	cout << "call ";
-
-	if(num_of_subroutineCall == 3)
-	{
-		unknown_variable_name = cs_node_value(cs_get_child(subroutineCall, 0));
-		unknown_subroutine_name = cs_node_value( cs_get_child(subroutineCall, 1));
-		write_to_buffer(unknown_variable_name+"."+unknown_subroutine_name+" 0\n");
-		cout << unknown_variable_name+"."+unknown_subroutine_name+" 0\n";
-	}
+	
+	write_to_buffer(className+"."+unknown_subroutine_name + " " + int_to_string(subroutine_table->lookup(unknown_subroutine_name)) + "\n");
+	cout << className+"."+unknown_subroutine_name + " " << subroutine_table->lookup(unknown_subroutine_name) << endl;
 }
 
 void genVarName(cs_node varName)
@@ -721,17 +828,29 @@ void genVarName(cs_node varName)
 }
 
 
-
-
-//parameterList and Array is not done yet
-//cout << "kokokokokokokokokokokokokokokokokokokokokkokokokokokookokokokokokokokokokoko " << endl;
-
-
 void jack_codegen(cs_node t)
 {                
 	genClass(t);
 
-    //cout << "\nAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n";
-
-
 }
+
+/*
+
+
+cout << "kokokokokokokkkokokokokokokokokokokokokok" << endl;
+
+
+*/
+
+
+
+
+
+
+
+
+
+
+
+
+
